@@ -5,11 +5,10 @@ Create the table
 
 CREATE TABLE public.transactions
 (
-    id bigint NOT NULL,
+    id serial PRIMARY KEY,
     date date NOT NULL,
     transaction numeric(8, 2) NOT NULL,
-    created_at timestamp without time zone,
-    PRIMARY KEY (id)
+    created_at timestamp without time zone
 );
 
 ALTER TABLE IF EXISTS public.transactions

@@ -14,6 +14,12 @@ type transaction struct {
 	Conn *sql.DB
 }
 
+func NewTransaction(conn *sql.DB) transaction {
+	return transaction{
+		Conn: conn,
+	}
+}
+
 func (m transaction) Insert(ctx context.Context, transaction *entity.Transaction) (err error) {
 	query := `
 		INSERT INTO transactions (date, transaction, created_at)

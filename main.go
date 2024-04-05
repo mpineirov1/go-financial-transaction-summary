@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/csv"
 	"fmt"
+	"go-financial-transaction-summary/database"
 	"go-financial-transaction-summary/models"
 	"go-financial-transaction-summary/repository"
 	"go-financial-transaction-summary/repository/entity"
@@ -16,7 +17,6 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/joho/godotenv"
 	"gopkg.in/gomail.v2"
 )
 
@@ -42,6 +42,10 @@ func main() {
 	}
 	transactionsByMonth := make(map[int][]models.Transaction)
 	var totalBalance float64
+	ctx := context.Background()
+	db, _ := database.Connect(ctx)
+	transactionRepo := repository.NewTransaction(db)
+
 	for _, eachrecord := range records[1:] {
 		if len(eachrecord) < 3 {
 			log.Printf("Record with missing data: %v", eachrecord)
@@ -53,12 +57,17 @@ func main() {
 		totalBalance = transaction + totalBalance
 		month := date.Format("01")
 		monthNumber, _ := strconv.Atoi(month)
-		transactionsByMonth[monthNumber] = append(transactionsByMonth[monthNumber], models.Transaction{
+		transactionModel := models.Transaction{
 			ID:          id,
 			Date:        date,
 			Transaction: transaction,
-		})
+			CreatedAt:   time.Now(),
+		}
+		transactionsByMonth[monthNumber] = append(transactionsByMonth[monthNumber], transactionModel)
+		err = insertTransaction(ctx, transactionRepo, transactionModel)
+		fmt.Println(err)
 	}
+
 	summaryData := struct {
 		TotalBalance float64
 		MonthSummary map[string]models.MonthSummary
@@ -121,11 +130,11 @@ func insertTransaction(ctx context.Context, repo repository.Transaction, transac
 
 func sendMail(to, subject, body string) {
 
-	from := goDotEnvVariable("MAIL_FROM_ADDRESS")
-	username := goDotEnvVariable("MAIL_USERNAME")
-	password := goDotEnvVariable("MAIL_PASSWORD")
-	smtpHost := goDotEnvVariable("MAIL_HOST")
-	smtpPort, _ := strconv.Atoi(goDotEnvVariable("MAIL_PORT"))
+	from := utils.GoDotEnvVariable("MAIL_FROM_ADDRESS")
+	username := utils.GoDotEnvVariable("MAIL_USERNAME")
+	password := utils.GoDotEnvVariable("MAIL_PASSWORD")
+	smtpHost := utils.GoDotEnvVariable("MAIL_HOST")
+	smtpPort, _ := strconv.Atoi(utils.GoDotEnvVariable("MAIL_PORT"))
 
 	m := gomail.NewMessage()
 	m.SetHeader("From", from)
@@ -138,16 +147,4 @@ func sendMail(to, subject, body string) {
 	if err := d.DialAndSend(m); err != nil {
 		log.Fatal(err)
 	}
-}
-
-func goDotEnvVariable(key string) string {
-
-	// load .env file
-	err := godotenv.Load(".env")
-
-	if err != nil {
-		log.Fatalf("Error loading .env file")
-	}
-
-	return os.Getenv(key)
 }
