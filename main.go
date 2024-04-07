@@ -65,7 +65,7 @@ func main() {
 		}
 		transactionsByMonth[monthNumber] = append(transactionsByMonth[monthNumber], transactionModel)
 		err = insertTransaction(ctx, transactionRepo, transactionModel)
-		fmt.Println(err)
+
 	}
 
 	summaryData := struct {
@@ -110,8 +110,8 @@ func main() {
 
 	tmpl := template.Must(template.ParseFiles("templates/mail.html"))
 	tmpl.Execute(&body, summaryData)
-
-	sendMail("mpineirov1@hotmail.com", "Summary", body.String())
+	mail := utils.GoDotEnvVariable("TEST_EMAIL")
+	sendMail(mail, "Summary", body.String())
 }
 
 func insertTransaction(ctx context.Context, repo repository.Transaction, transaction models.Transaction) error {
